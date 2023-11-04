@@ -9,12 +9,12 @@ import { AppRouter } from './presentation/routes';
 
 )();
 
-function main(){
-  const server= new Server({
+function main() {
+  const server = new Server({
     port: envs.PORT,
     routes: AppRouter.routes,
   }
 
   );
-   server.start();
+  server.start();
 }
