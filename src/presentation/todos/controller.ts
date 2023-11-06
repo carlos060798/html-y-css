@@ -3,6 +3,8 @@
 import { Request, Response } from "express";
 import { prisma } from "../../data/postgres";
 import { todo } from "@prisma/client";
+import { CreateTodoDto } from "../../domain/dtos/todos/create-todo-dto";
+import { UpdateTodoDto } from '../../domain/dtos/todos/update-todo-dto';
 
 export class TodoController {
 
@@ -63,15 +65,12 @@ export class TodoController {
 
     public createTodo = async (req: Request, res: Response) => {
         try {
-            const { text,completedAt } = req.body
-            if (!text) return res.json({
-                status: 400,
-                msg: "error, el campo text es requerido"
-            })
-
+            const [error,createTodoDto] = CreateTodoDto.create(req.body);
+           if(error) return res.json({
+               status:400,
+               msg:error})
             const task = await prisma.todo.create({
-                data: { text,
-                    completedAt:(completedAt)? new Date(completedAt):null }
+                data: createTodoDto! 
             })
 
             res.json({
@@ -96,19 +95,18 @@ export class TodoController {
     public updateTodo = async (req: Request, res: Response) => {
         try {
             const id = +req.params.id
-            const { text, completedAt } = req.body
+            const [error,updateTodoDto ] = UpdateTodoDto.create({...req.body,id})
 
-            if (!text) return res.json({
+            if (error) return res.json({
                 status: 400,
-                msg: "error, el campo text es requerido"
+                msg: error
             })
 
             const taskUpdate = await prisma.todo.update({
                 where: { id: id },
-                data: { text: text,
-                    completedAt:(completedAt)? new Date(completedAt):null
+                data: updateTodoDto!.values
                 }
-            })
+            )
             if (!taskUpdate) {
                 return res.status(404).json({
                     ok: false,

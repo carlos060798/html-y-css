@@ -71,13 +71,7 @@ export class Server {
     this.app.use(express.static(this.publicPath)); 
 
     // routes de rest api
-    this.app.use(this.routes);
-
-    // ruta para servir el app de react
-    this.app.get("*", (req, res) => {
-      const index = path.join(__dirname, `../../${this.publicPath}/index.html`);
-      res.sendFile(index);
-    });
+    this.app.use(this.routes);   
 
     // iniciar el servidor
     this.app.listen(this.port, () => {
