@@ -1,80 +1,87 @@
 // controlador de la ruta /todos
 
 import { Request, Response } from "express";
+import { prisma } from "../../data/postgres";
+import { todo } from "@prisma/client";
 
-// datos de todos
-
-const Todos=[{
-    id: 1,
-    name: "todo 1",
-    created_at: new Date()
-},
-{
-    id: 2,
-    name: "todo 2",
-    created_at: new Date()
-},
-]
-
-
-/**
- * Controlador para manejar las operaciones CRUD de los todos.
- */
 export class TodoController {
 
     constructor() {
 
     }
 
-    /**
-     * Obtiene todos los todos.
-     * @param req - La solicitud HTTP entrante.
-     * @param res - La respuesta HTTP que se enviará al cliente.
-     * @returns Una respuesta JSON con todos los todos.
-     */
-    public getTodos = (req: Request, res: Response) => {
+    public getTodos = async (req: Request, res: Response) => {
 
-       return res.json(Todos)
-    }
+        try {
 
-    /**
-     * Obtiene un todo específico por su ID.
-     * @param req - La solicitud HTTP entrante.
-     * @param res - La respuesta HTTP que se enviará al cliente.
-     * @returns Una respuesta JSON con el todo correspondiente al ID proporcionado.
-     * Si no se encuentra ningún todo con el ID proporcionado, se devuelve una respuesta de error 404.
-     */
-    public getTodo = (req: Request, res: Response) => {
+            const todos = await prisma.todo.findMany()
+            res.json({
+                status: 200,
+                msg: " todos en base de datos",
+                todos
+            })
 
-        const  id  = +req.params.id;
-        const todo = Todos.find((todo) => todo.id == id);
-        if (!todo) {
-            return res.status(404).json({
-                ok: false,
-                msg: "todo not found"
+        } catch (error) {
+            res.json({
+                status: 500,
+                msg: "error"
             })
         }
-        return res.json(todo)
     }
-    
-    /**
-     * Crea un nuevo todo.
-     * @param req - La solicitud HTTP entrante.
-     * @param res - La respuesta HTTP que se enviará al cliente.
-     * @returns Una respuesta JSON con el todo creado.
-     * Si ocurre un error, se devuelve una respuesta de error 500.
-     */
-    public createTodo = (req: Request, res: Response) => {
+
+
+    public getTodo = async (req: Request, res: Response) => {
         try {
-            const todo = req.body
-
-            Todos.push(todo)
-
-            return res.json({
-                ok: true,
-                msg: "todo created",
-                todo
+            const id = +req.params.id;
+            const taskid = await prisma.todo.findUnique({
+                where: {
+                    id: id,
+                },
             })
+            if (!taskid) {
+                return res.status(404).json({
+                    status: 404,
+                    msg: "todo not found"
+                })
+            }
+            return res.json({
+                status: 200,
+                msg: "todo found",
+                taskid,
+                id
+            })
+        } catch (error) {
+            res.json({
+                status: 500,
+                msg: "ocurrion un error",
+                error
+            })
+        }
+    }
+
+
+
+    public createTodo = async (req: Request, res: Response) => {
+        try {
+            const { text,completedAt } = req.body
+            if (!text) return res.json({
+                status: 400,
+                msg: "error, el campo text es requerido"
+            })
+
+            const task = await prisma.todo.create({
+                data: { text,
+                    completedAt:(completedAt)? new Date(completedAt):null }
+            })
+
+            res.json({
+                status: 200,
+                msg: "todo created",
+                task
+            })
+
+
+
         }
 
         catch (error) {
@@ -85,82 +92,75 @@ export class TodoController {
         }
     }
 
-    /**
-     * Actualiza un todo existente.
-     * @param req - La solicitud HTTP entrante.
-     * @param res - La respuesta HTTP que se enviará al cliente.
-     * @returns Una respuesta JSON con el todo actualizado.
-     * Si el todo no se encuentra, se devuelve una respuesta de error 404.
-     * Si ocurre un error, se devuelve una respuesta de error 500.
-     */
-    public updateTodo = (req: Request, res: Response) => {
+
+    public updateTodo = async (req: Request, res: Response) => {
         try {
             const id = +req.params.id
-            const todo = req.body
+            const { text, completedAt } = req.body
 
-            const todoIndex = Todos.findIndex((todo) => todo.id == id)
+            if (!text) return res.json({
+                status: 400,
+                msg: "error, el campo text es requerido"
+            })
 
-            if (todoIndex < 0) {
+            const taskUpdate = await prisma.todo.update({
+                where: { id: id },
+                data: { text: text,
+                    completedAt:(completedAt)? new Date(completedAt):null
+                }
+            })
+            if (!taskUpdate) {
                 return res.status(404).json({
                     ok: false,
                     msg: "todo not found"
                 })
             }
-
-            Todos[todoIndex] = todo
-
             return res.json({
                 ok: true,
                 msg: "todo updated",
-                todo
+                taskUpdate
             })
         }
 
         catch (error) {
-            res.status(500).json({
-                msg: "error",
-                fail: error
+            res.json({
+                status: 500,
+                msg: "error al actualizar",
+                error
+
             })
+
+
         }
     }
-  
 
-    /**
-     * Elimina un todo existente.
-     * @param req - La solicitud HTTP entrante.
-     * @param res - La respuesta HTTP que se enviará al cliente.
-     * @returns Una respuesta JSON con el todo eliminado.
-     * Si el todo no se encuentra, se devuelve una respuesta de error 404.
-     * Si ocurre un error, se devuelve una respuesta de error 500.
-     */
-    public deleteTodo = (req: Request, res: Response) => {
-        try{
-         const id = +req.params.id
-         const tododelete = Todos.find((todo) => todo.id == id)
-            if(!tododelete){
+
+
+    public deleteTodo = async (req: Request, res: Response) => {
+        try {
+            const id = +req.params.id
+            const taskDelete = await prisma.todo.delete({
+                where: { id: id }
+            })
+            if (!taskDelete) {
                 return res.status(404).json({
-                    ok: false,
+                    status: 404,
                     msg: "todo not found"
                 })
             }
-            Todos.slice(Todos.indexOf(tododelete),1)
-
-         return res.json({
-                ok: true,
+            return res.json({
+                status: 200,
                 msg: "todo deleted",
-                tododelete
-         })
-         
-
-
-
-        }catch(error){
-            res.json({
-              msg: "error  al eliminar"
-
+                taskDelete
             })
-
+        } catch (error) {
+            res.json({
+                status: 500,
+                msg: "error al eliminar",
+                error
+            })
         }
+
     }
 
 }
