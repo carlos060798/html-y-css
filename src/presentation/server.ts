@@ -73,6 +73,11 @@ export class Server {
     // routes de rest api
     this.app.use(this.routes);   
 
+    this.app.get("*", (req, res) => {
+      const index = path.join(__dirname, `../../${this.publicPath}/index.html`);
+      res.sendFile(index);
+    });
+
     // iniciar el servidor
     this.app.listen(this.port, () => {
       console.log("servidor corriendo en el puerto 3000");
