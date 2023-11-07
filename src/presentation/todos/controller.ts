@@ -26,7 +26,8 @@ export class TodoController {
         } catch (error) {
             res.json({
                 status: 500,
-                msg: "error"
+                msg: "error",
+                error
             })
         }
     }
