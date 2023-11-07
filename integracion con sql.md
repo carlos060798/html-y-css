@@ -34,3 +34,6 @@ model Post {
 }
 ## se ejecuta para inciar la conexion con la base de datos
 npx prisma migrate dev --name init
+## se ejecuta para generar el cliente de prisma
+
+npx prisma generate
