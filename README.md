@@ -1,2 +1,3 @@
-# apiRESTNODE
-proyecto de node para cosntruir una api con TS
+# manejo de los conceptos de arquitectura limpia 
+
+## Arquitectura limpia
