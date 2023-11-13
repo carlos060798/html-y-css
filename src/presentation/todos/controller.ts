@@ -1,52 +1,35 @@
 // controlador de la ruta /todos
 
 import { Request, Response } from "express";
-import { prisma } from "../../data/postgres";
-import { todo } from "@prisma/client";
 import { CreateTodoDto } from "../../domain/dtos/todos/create-todo-dto";
 import { UpdateTodoDto } from '../../domain/dtos/todos/update-todo-dto';
+import { TodoRepository } from '../../domain/repositories/todo.repository';
 
 export class TodoController {
 
-    constructor() {
+    constructor(
+      private readonly todorepository:TodoRepository
+    ) {
 
     }
 
     public getTodos = async (req: Request, res: Response) => {
 
-        try {
-
-            const todos = await prisma.todo.findMany()
-            res.json({
-                status: 200,
-                msg: " todos en base de datos",
-                todos
-            })
-
-        } catch (error) {
-            res.json({
-                status: 500,
-                msg: "error",
-                error
-            })
-        }
+      const todos = await this.todorepository.getAll();
+        res.json({
+            status: 200,
+            msg: "todos found",
+            todos
+        })
     }
 
 
     public getTodo = async (req: Request, res: Response) => {
+        const id = +req.params.id;
         try {
-            const id = +req.params.id;
-            const taskid = await prisma.todo.findUnique({
-                where: {
-                    id: id,
-                },
-            })
-            if (!taskid) {
-                return res.status(404).json({
-                    status: 404,
-                    msg: "todo not found"
-                })
-            }
+          
+            const taskid = await this.todorepository.getById(id);
+
             return res.json({
                 status: 200,
                 msg: "todo found",
@@ -55,8 +38,8 @@ export class TodoController {
             })
         } catch (error) {
             res.json({
-                status: 500,
-                msg: "ocurrion un error",
+                status: 404,
+                msg: "ocurrion un error todo no encontrado",
                 error
             })
         }
@@ -70,9 +53,8 @@ export class TodoController {
            if(error) return res.json({
                status:400,
                msg:error})
-            const task = await prisma.todo.create({
-                data: createTodoDto! 
-            })
+            const task= await this.todorepository.create(createTodoDto!)
+            
 
             res.json({
                 status: 200,
@@ -98,22 +80,9 @@ export class TodoController {
             const id = +req.params.id
             const [error,updateTodoDto ] = UpdateTodoDto.create({...req.body,id})
 
-            if (error) return res.json({
-                status: 400,
-                msg: error
-            })
+            if (error) return res.json({ status: 400,   msg: error})
 
-            const taskUpdate = await prisma.todo.update({
-                where: { id: id },
-                data: updateTodoDto!.values
-                }
-            )
-            if (!taskUpdate) {
-                return res.status(404).json({
-                    ok: false,
-                    msg: "todo not found"
-                })
-            }
+            const taskUpdate = await this.todorepository.updateById(updateTodoDto!)
             return res.json({
                 ok: true,
                 msg: "todo updated",
@@ -138,15 +107,8 @@ export class TodoController {
     public deleteTodo = async (req: Request, res: Response) => {
         try {
             const id = +req.params.id
-            const taskDelete = await prisma.todo.delete({
-                where: { id: id }
-            })
-            if (!taskDelete) {
-                return res.status(404).json({
-                    status: 404,
-                    msg: "todo not found"
-                })
-            }
+            const taskDelete = await this.todorepository.deleteById(id)
+            
             return res.json({
                 status: 200,
                 msg: "todo deleted",
